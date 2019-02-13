@@ -1,99 +1,64 @@
 #!/usr/bin/groovy
 
-////
-// This pipeline requires the following plugins:
-// Kubernetes Plugin 0.10
-////
+@Library('github.com/fabric8io/fabric8-pipeline-library@master')
+def canaryVersion = "1.0.${env.BUILD_NUMBER}"
+def utils = new io.fabric8.Utils()
+def stashName = "buildpod.${env.JOB_NAME}.${env.BUILD_NUMBER}".replace('-', '_').replace('/', '_')
+def envStage = utils.environmentNamespace('stage')
+def envProd = utils.environmentNamespace('run')
+def setupScript = null
 
-String ocpApiServer = env.OCP_API_SERVER ? "${env.OCP_API_SERVER}" : "https://openshift.default.svc.cluster.local"
+mavenNode {
+  checkout scm
+  if (utils.isCI()) {
 
-node('master') {
+    mavenCI {
+        integrationTestCmd =
+         "mvn org.apache.maven.plugins:maven-failsafe-plugin:integration-test \
+            org.apache.maven.plugins:maven-failsafe-plugin:verify \
+            -Dnamespace.use.current=false -Dnamespace.use.existing=${utils.testNamespace()} \
+            -Dit.test=*IT -DfailIfNoTests=false -DenableImageStreamDetection=true \
+            -P openshift-it"
+    }
 
-  env.NAMESPACE = readFile('/var/run/secrets/kubernetes.io/serviceaccount/namespace').trim()
-  env.TOKEN = readFile('/var/run/secrets/kubernetes.io/serviceaccount/token').trim()
-  env.OC_CMD = "oc --token=${env.TOKEN} --server=${ocpApiServer} --certificate-authority=/run/secrets/kubernetes.io/serviceaccount/ca.crt --namespace=${env.NAMESPACE}"
+  } else if (utils.isCD()) {
+    /*
+     * Try to load the script ".openshiftio/Jenkinsfile.setup.groovy".
+     * If it exists it must contain two functions named "setupEnvironmentPre()"
+     * and "setupEnvironmentPost()" which should contain code that does any extra
+     * required setup in OpenShift specific for the booster. The Pre version will
+     * be called _before_ the booster objects are created while the Post version
+     * will be called afterwards.
+     */
+    try {
+      setupScript = load "${pwd()}/.openshiftio/Jenkinsfile.setup.groovy"
+    } catch (Exception ex) {
+      echo "Jenkinsfile.setup.groovy not found"
+    }
 
-  env.APP_NAME = "${env.JOB_NAME}".replaceAll(/-?pipeline-?/, '').replaceAll(/-?${env.NAMESPACE}-?/, '')
-  def projectBase = "${env.NAMESPACE}".replaceAll(/-dev/, '')
-  env.STAGE1 = "${projectBase}-dev"
-  env.STAGE2 = "${projectBase}-stage"
-  env.STAGE3 = "${projectBase}-prod"
-
-}
-
-node('maven') {
-//  def mvnHome = "/usr/share/maven/"
-//  def mvnCmd = "${mvnHome}bin/mvn"
-  def mvnCmd = 'mvn'
-  String pomFileLocation = env.BUILD_CONTEXT_DIR ? "${env.BUILD_CONTEXT_DIR}/pom.xml" : "pom.xml"
-
-  stage('SCM Checkout') {
-    checkout scm
-  }
-
-  stage('Build') {
-
-    sh "${mvnCmd} clean install -DskipTests=true -f ${pomFileLocation}"
-
-  }
-
-  stage('Unit Test') {
-
-     sh "${mvnCmd} test -f ${pomFileLocation}"
-
-  }
-
-  // The following variables need to be defined at the top level and not inside
-  // the scope of a stage - otherwise they would not be accessible from other stages.
-  // Extract version and other properties from the pom.xml
-  //def groupId    = getGroupIdFromPom("./pom.xml")
-  //def artifactId = getArtifactIdFromPom("./pom.xml")
-  //def version    = getVersionFromPom("./pom.xml")
-  //println("Artifact ID:" + artifactId + ", Group ID:" + groupId)
-  //println("New version tag:" + version)
-
-  stage('Build Image') {
-
-    sh """
-      rm -rf oc-build && mkdir -p oc-build/deployments
-      for t in \$(echo "jar;war;ear" | tr ";" "\\n"); do
-        cp -rfv ./target/*.\$t oc-build/deployments/ 2> /dev/null || echo "No \$t files"
-      done
-      ${env.OC_CMD} start-build ${env.APP_NAME} --from-dir=oc-build --wait=true --follow=true || exit 1
-    """
-  }
-
-  stage("Verify Deployment to ${env.STAGE1}") {
-
-    openshiftVerifyDeployment(deploymentConfig: "${env.APP_NAME}", namespace: "${STAGE1}", verifyReplicaCount: true)
-
-    input "Promote Application to Stage?"
-  }
-
-  stage("Promote To ${env.STAGE2}") {
-    sh """
-    ${env.OC_CMD} tag ${env.STAGE1}/${env.APP_NAME}:latest ${env.STAGE2}/${env.APP_NAME}:latest
-    """
-  }
-
-  stage("Verify Deployment to ${env.STAGE2}") {
-
-    openshiftVerifyDeployment(deploymentConfig: "${env.APP_NAME}", namespace: "${STAGE2}", verifyReplicaCount: true)
-
-    input "Promote Application to Prod?"
-  }
-
-  stage("Promote To ${env.STAGE3}") {
-    sh """
-    ${env.OC_CMD} tag ${env.STAGE2}/${env.APP_NAME}:latest ${env.STAGE3}/${env.APP_NAME}:latest
-    """
-  }
-
-  stage("Verify Deployment to ${env.STAGE3}") {
-
-    openshiftVerifyDeployment(deploymentConfig: "${env.APP_NAME}", namespace: "${STAGE3}", verifyReplicaCount: true)
-
+    echo 'NOTE: running pipelines for the first time will take longer as build and base docker images are pulled onto the node'
+    container(name: 'maven', shell:'/bin/bash') {
+      stage('Build Image') {
+        mavenCanaryRelease {
+          version = canaryVersion
+        }
+        //stash deployment manifests
+        stash includes: '**/*.yml', name: stashName
+      }
+    }
   }
 }
 
-println "Application ${env.APP_NAME} is now in Production!"
+if (utils.isCD()) {
+  node {
+    stage('Rollout to Stage') {
+      unstash stashName
+      setupScript?.setupEnvironmentPre(envStage)
+      apply {
+        environment = envStage
+      }
+      setupScript?.setupEnvironmentPost(envStage)
+    }
+  }
+}
+
