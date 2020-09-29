@@ -23,7 +23,7 @@ public class GreetingController {
 
     @RequestMapping(value = "/v1/greeting" ,  method = RequestMethod.GET)
     @ApiOperation(value = "Generate a greeting for a given name")
-    public Greeting greeting(@RequestParam(value="name", defaultValue="Whats up dude") String name) {
+    public Greeting greeting(@RequestParam(value="name", defaultValue="Whats up geeks") String name) {
         counter.increment();
         return new Greeting((int)counter.count(),
                             String.format(template, name));
