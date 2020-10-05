@@ -16,10 +16,8 @@ spec:
       parameters:
         - name: application_tag
           value: latest
-        - name: pipeline.name
-          value: test-and-promote-pipeline
         - name: pipeline.deploy
-          value: 'true'
+          value: 'false'
         - name: namespace
           value: att-qa
         - name: build.deploy
