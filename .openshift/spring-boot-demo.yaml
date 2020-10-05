@@ -1,0 +1,29 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: spring-boot-demo-staging
+  namespace: cicd-tools
+spec:
+  destination:
+    namespace: att-build
+    server: 'https://kubernetes.default.svc'
+  project: default
+  syncPolicy:
+    automated: {}  
+  source:
+    helm:
+      parameters:
+        - name: application_tag
+          value: latest
+        - name: build.namespace
+          value: att-build
+        - name: pipeline.deploy
+          value: 'true'
+        - name: namespace
+          value: att-stage
+        - name: build.deploy
+          value: 'true'
+    path: helm/app-deployment
+    repoURL: 'https://github.com/redhat-mal/ocp-labs-manager.git'
+    targetRevision: HEAD
