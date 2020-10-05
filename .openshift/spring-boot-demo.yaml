@@ -20,6 +20,8 @@ spec:
           value: att-build
         - name: pipeline.deploy
           value: 'true'
+        - name: application_name
+          value: 'mikes-spring-test'
         - name: namespace
           value: att-stage
         - name: build.deploy
