@@ -16,6 +16,8 @@ spec:
       parameters:
         - name: application_tag
           value: latest
+        - name: application_name
+          value: 'mikes-spring-test'
         - name: pipeline.deploy
           value: 'false'
         - name: namespace
