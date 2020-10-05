@@ -18,12 +18,8 @@ spec:
           value: 91458fd2d57e1463e3268eec5b6124ac36e592e0
         - name: application_name
           value: 'mikes-spring-test'
-        - name: pipeline.deploy
-          value: 'false'
         - name: namespace
           value: att-qa
-        - name: build.deploy
-          value: 'false'
     path: helm/app-deployment
     repoURL: 'https://github.com/redhat-mal/ocp-labs-manager.git'
     targetRevision: HEAD
