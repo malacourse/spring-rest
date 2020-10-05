@@ -15,7 +15,7 @@ spec:
     helm:
       parameters:
         - name: application_tag
-          value: latest
+          value: 72367a5542edaf4389cc77c374b25024a9ff4a6b
         - name: pipeline.deploy
           value: 'false'
         - name: namespace
