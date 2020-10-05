@@ -28,6 +28,10 @@ spec:
           value: att-qa
         - name: build.deploy
           value: 'true'
+        - name: pipeline.source_repo  
+          value: https://github.com/malacourse/spring-rest.git
+        - name: pipeline.source_ref
+          value: master
     path: helm/app-deployment
     repoURL: 'https://github.com/redhat-mal/ocp-labs-manager.git'
     targetRevision: HEAD
