@@ -62,7 +62,8 @@ public class Application {
                 regex("/v1/greeting.*"),
                 regex("/v1/hostinfo.*"),
                 regex("/v1/envinfo.*"),
-                regex("/v1/*")
+		regex("/docs"),
+                regex("/v1/version.*")
         );
     }    
 

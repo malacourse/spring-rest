@@ -29,11 +29,18 @@ public class GreetingController {
                             String.format(template, name));
     }
 
-    @GetMapping("/")
-    public RedirectView index() {
+    @GetMapping("/docs")
+    public RedirectView docs() {
         return new RedirectView("swagger-ui.html");
     }
 
+    @RequestMapping(value = "/v1/version",  method = RequestMethod.GET)
+    @ApiOperation(value = "List current app version.")
+    public Version version() {
+	Version appV = new Version();
+	System.out.println("Ver:" + appV.getVersion());
+        return appV;
+    }
 
     @RequestMapping(value = "/v1/hostinfo",  method = RequestMethod.GET)
     @ApiOperation(value = "List host name running the sample application.")
