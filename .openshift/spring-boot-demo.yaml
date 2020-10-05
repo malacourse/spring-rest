@@ -24,6 +24,8 @@ spec:
           value: 'mikes-spring-test'
         - name: namespace
           value: att-stage
+        - name: namespace_qa
+          value: att-qa
         - name: build.deploy
           value: 'true'
     path: helm/app-deployment
