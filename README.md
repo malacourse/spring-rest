@@ -8,3 +8,5 @@ The qa branch contains the Argo Application definition to deploy to stage and cr
 
 1. `Apply spring-boot-demo.yaml to ArgoCD project`
 
+
++
