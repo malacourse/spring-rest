@@ -15,7 +15,7 @@ spec:
     helm:
       parameters:
         - name: application_tag
-          value: da37962d3f400f50cee594d892fe411d7dc79724
+          value: 81ae009a9a7100dff3a314e9c059c9a9acc86be7
         - name: application_name
           value: 'mikes-spring-test'
         - name: namespace
