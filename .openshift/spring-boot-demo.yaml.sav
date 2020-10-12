@@ -2,11 +2,11 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: mikes-spring-test
-  namespace: labs-cicd
+  name: mikes-spring-test-qa
+  namespace: cicd-tools
 spec:
   destination:
-    namespace: att-build
+    namespace: att-qa
     server: 'https://kubernetes.default.svc'
   project: default
   syncPolicy:
@@ -15,23 +15,16 @@ spec:
     helm:
       parameters:
         - name: application_tag
-          value: latest
-        - name: build.namespace
-          value: att-build
-        - name: pipeline.deploy
-          value: 'true'
+          value: 04f433cf6497c7080114345dbc2e46ced1ba3408
         - name: application_name
           value: 'mikes-spring-test'
         - name: namespace
-          value: att-stage
-        - name: namespace_qa
           value: att-qa
-        - name: build.deploy
-          value: 'true'
-        - name: pipeline.source_repo  
+        - name: pipeline.source_repo 
           value: https://github.com/malacourse/spring-rest.git
         - name: pipeline.source_ref
-          value: master
+          value: qa
     path: helm/app-deployment
     repoURL: 'https://github.com/redhat-mal/ocp-labs-manager.git'
     targetRevision: HEAD
+
